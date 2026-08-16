@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agente IA de Quiz</title>
+  <style>
+    :root{
+      --bg:#080d1d; --card:#111a34; --card2:#172348; --text:#eff5ff; --muted:#9fb0d0;
+      --ok:#35d07f; --bad:#ff5f6d; --warn:#ffc857; --brand:#7c5cff; --brand2:#4aa3ff; --line:#293963;
+      --shadow:0 22px 60px rgba(0,0,0,.35); --r:24px;
+    }
+    *{box-sizing:border-box} html{scroll-behavior:smooth}
+    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:
+      radial-gradient(900px 520px at 8% 0%, rgba(124,92,255,.36), transparent 62%),
+      radial-gradient(850px 520px at 94% 10%, rgba(53,208,127,.18), transparent 60%),
+      radial-gradient(700px 460px at 50% 100%, rgba(74,163,255,.14), transparent 60%), var(--bg); color:var(--text);}
+    .wrap{max-width:1160px;margin:0 auto;padding:30px 18px 55px}.hero{display:grid;grid-template-columns:1.08fr .92fr;gap:18px;align-items:stretch;margin-bottom:18px}
+    .panel,.card{background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.035));border:1px solid rgba(255,255,255,.12);box-shadow:var(--shadow);border-radius:var(--r);backdrop-filter:blur(10px)}
+    .panel{padding:24px}.card{padding:18px;position:relative;overflow:hidden}.card:before{content:"";position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,var(--brand),var(--brand2),var(--ok));opacity:.8}
+    h1{font-size:clamp(32px,5.8vw,64px);line-height:.95;margin:0 0 13px;letter-spacing:-.055em}.lead{color:var(--muted);font-size:18px;line-height:1.55;margin:0}.pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:rgba(124,92,255,.16);border:1px solid rgba(124,92,255,.32);color:#dfd8ff;font-weight:850;font-size:13px;margin-bottom:15px}.dot{width:8px;height:8px;background:var(--ok);border-radius:50%;box-shadow:0 0 18px var(--ok)}
+    .agent{display:flex;gap:12px;align-items:flex-start;margin:14px 0 0;padding:14px;border-radius:18px;background:rgba(53,208,127,.1);border:1px solid rgba(53,208,127,.24)}.bot{width:42px;height:42px;border-radius:15px;background:linear-gradient(135deg,var(--ok),var(--brand2));display:grid;place-items:center;color:#05101f;font-weight:1000;flex:0 0 auto}.small{color:var(--muted);font-size:13px;line-height:1.45}.kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.11);padding:1px 6px;border-radius:7px}
+    .form{display:grid;gap:12px}.label{font-weight:850;font-size:13px;color:#dfe8ff}.input,.select,.textarea{width:100%;border:1px solid var(--line);background:#0d1429;color:var(--text);border-radius:15px;padding:13px 14px;font-size:16px;outline:none;transition:.2s}.input:focus,.select:focus,.textarea:focus{border-color:var(--brand);box-shadow:0 0 0 4px rgba(124,92,255,.16)}.textarea{min-height:96px;resize:vertical}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btn{border:0;border-radius:15px;padding:13px 16px;font-weight:950;color:white;background:linear-gradient(135deg,var(--brand),var(--brand2));cursor:pointer;box-shadow:0 12px 25px rgba(124,92,255,.23)}.btn.secondary{background:#1b2748;color:#dce7ff;border:1px solid rgba(255,255,255,.11);box-shadow:none}.btn.ok{background:linear-gradient(135deg,#20b86d,#4aa3ff)}.btn:disabled{opacity:.55;cursor:not-allowed}.btn:hover:not(:disabled){filter:brightness(1.07)}
+    .score{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0}.stat{padding:13px;border-radius:17px;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.08)}.stat b{display:block;font-size:24px}.stat span{color:var(--muted);font-size:12px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.empty{padding:30px;text-align:center;color:var(--muted);border:1px dashed rgba(255,255,255,.18);border-radius:22px;background:rgba(255,255,255,.035)}
+    .tag{display:inline-flex;gap:6px;align-items:center;color:#d5deff;background:rgba(124,92,255,.16);border:1px solid rgba(124,92,255,.25);border-radius:999px;padding:5px 9px;font-size:12px;font-weight:850}.q{font-size:20px;font-weight:900;margin:14px 0 12px;line-height:1.35}.feedback{margin-top:11px;min-height:46px;border-radius:15px;padding:11px 12px;color:var(--muted);background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.075);line-height:1.38}.feedback.ok{color:#d9ffe9;background:rgba(53,208,127,.12);border-color:rgba(53,208,127,.32)}.feedback.bad{color:#ffe2e5;background:rgba(255,95,109,.11);border-color:rgba(255,95,109,.3)}.feedback.warn{color:#fff2c9;background:rgba(255,200,87,.1);border-color:rgba(255,200,87,.28)}.miniActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.explain{margin-top:9px;color:#dce7ff;background:#0d1429;border:1px dashed rgba(255,255,255,.18);border-radius:14px;padding:10px 12px;display:none;line-height:1.45}.explain.show{display:block}.loading{display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:white;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.footer{color:var(--muted);text-align:center;margin-top:26px;font-size:13px}.toast{position:fixed;right:16px;bottom:16px;max-width:min(420px,calc(100vw - 32px));padding:14px 15px;border-radius:16px;background:#121b35;border:1px solid rgba(255,255,255,.14);box-shadow:var(--shadow);color:#eaf1ff;display:none}.toast.show{display:block}.tabs{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}.tab{border:1px solid rgba(255,255,255,.12);background:#1b2748;color:#dce7ff;border-radius:15px;padding:12px 16px;font-weight:950;cursor:pointer}.tab.active{background:linear-gradient(135deg,var(--brand),var(--brand2));color:white}.view{display:none}.view.active{display:block}.chatShell{display:grid;grid-template-columns:.8fr 1.2fr;gap:16px}.chatBox{height:560px;display:flex;flex-direction:column}.messages{flex:1;overflow:auto;padding:14px;border-radius:18px;background:rgba(0,0,0,.17);border:1px solid rgba(255,255,255,.08)}.msg{max-width:86%;margin:0 0 12px;padding:12px 13px;border-radius:17px;line-height:1.45;white-space:pre-wrap}.msg.user{margin-left:auto;background:linear-gradient(135deg,var(--brand),var(--brand2));color:white;border-bottom-right-radius:6px}.msg.ai{margin-right:auto;background:#101936;border:1px solid rgba(255,255,255,.09);color:#eef5ff;border-bottom-left-radius:6px}.chatForm{display:flex;gap:8px;margin-top:10px}.chatForm .input{flex:1}.memoryBox{margin-top:10px}.hintText{font-size:12px;color:var(--muted);line-height:1.45;margin-top:8px}
+    @media (max-width:900px){.hero,.grid,.chatShell{grid-template-columns:1fr}.score{grid-template-columns:repeat(2,1fr)}}@media(max-width:540px){.row,.score{grid-template-columns:1fr}h1{font-size:38px}.panel{padding:18px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <div class="panel">
+        <div class="pill"><span class="dot"></span> Agora é agente IA, sem opções pré-feitas</div>
+        <h1>Quiz + conversa com IA</h1>
+        <p class="lead">Digite qualquer categoria para criar quizzes, ou converse com a IA como uma assistente gentil para estudar, tirar dúvidas e pedir explicações.</p>
+        <div class="agent">
+          <div class="bot">IA</div>
+          <div><b>Agente escolhido: OpenRouter + Qwen Free</b><div class="small">A mesma IA cria quizzes e conversa. Se o Qwen grátis estiver cheio, o backend tenta outro modelo gratuito automaticamente.</div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <form class="form" id="agentForm">
+          <div>
+            <div class="label">Categoria/tema do quiz</div>
+            <input class="input" id="categoria" placeholder="Ex.: divisores, álgebra, história do Brasil, inglês, ciências..." value="matemática: divisores, primos, fatoração e álgebra básica" />
+          </div>
+          <div class="row">
+            <div><div class="label">Quantidade</div><select class="select" id="quantidade"><option>3</option><option selected>6</option><option>8</option><option>10</option></select></div>
+            <div><div class="label">Nível</div><select class="select" id="nivel"><option>fácil</option><option selected>médio</option><option>difícil</option></select></div>
+          </div>
+          <div>
+            <div class="label">Instruções extras para o agente</div>
+            <textarea class="textarea" id="instrucoes" placeholder="Ex.: faça perguntas curtas, aceite respostas equivalentes, explique passo a passo..."></textarea>
+          </div>
+          <button class="btn" id="generateBtn" type="submit">Gerar quiz com IA</button>
+          <button class="btn secondary" id="mathDemo" type="button">Usar demo local de matemática</button>
+        </form>
+      </div>
+    </section>
+
+    <div class="tabs" role="tablist">
+      <button class="tab active" id="tabQuiz" type="button">Criar Quiz</button>
+      <button class="tab" id="tabChat" type="button">Conversar com IA</button>
+    </div>
+
+    <section id="quizView" class="view active">
+    <section class="score" aria-label="Pontuação">
+      <div class="stat"><b id="okCount">0</b><span>certas</span></div>
+      <div class="stat"><b id="answeredCount">0</b><span>respondidas</span></div>
+      <div class="stat"><b id="totalCount">0</b><span>questões</span></div>
+      <div class="stat"><b id="percentCount">0%</b><span>aproveitamento</span></div>
+    </section>
+
+    <div class="toolbar">
+      <button class="btn ok" id="checkAll" disabled>Corrigir todas com IA</button>
+      <button class="btn secondary" id="newSame" disabled>Novo quiz na mesma categoria</button>
+      <button class="btn secondary" id="reset" disabled>Limpar respostas</button>
+    </div>
+
+    <section id="quiz" class="grid"><div class="empty">Digite uma categoria e clique em <b>Gerar quiz com IA</b>.</div></section>
+    </section>
+
+    <section id="chatView" class="view">
+      <div class="chatShell">
+        <div class="panel">
+          <h2 style="margin-top:0">Personalizar a IA</h2>
+          <div class="label">Seu nome / como quer ser chamado</div>
+          <input class="input" id="userName" placeholder="Ex.: Luke" />
+          <div class="memoryBox">
+            <div class="label">O que a IA deve lembrar neste navegador?</div>
+            <textarea class="textarea" id="memory" placeholder="Ex.: eu gosto de explicações simples; estou aprendendo álgebra; prefiro exemplos curtos..."></textarea>
+            <div class="hintText">Essa memória fica salva só no seu navegador com localStorage. Ela ajuda a IA a responder de um jeito mais parecido com você.</div>
+          </div>
+          <div class="toolbar">
+            <button class="btn secondary" id="saveMemory" type="button">Salvar memória</button>
+            <button class="btn secondary" id="clearChat" type="button">Limpar conversa</button>
+          </div>
+        </div>
+        <div class="panel chatBox">
+          <div class="messages" id="messages"></div>
+          <form class="chatForm" id="chatForm">
+            <input class="input" id="chatInput" placeholder="Converse com a IA... Ex.: me explica fatoração de um jeito fácil" autocomplete="off" />
+            <button class="btn" id="sendChat" type="submit">Enviar</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <p class="footer">Segurança: chaves de API ficam no backend da Vercel, não no navegador.</p>
+  </main>
+  <div class="toast" id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let questions = [];
+let results = new Map();
+let lastConfig = null;
+let chatMessages = [];
+
+const demoMath = [
+  {id:'q1', categoria:'Divisores', enunciado:'Quais são os divisores positivos de 18?', respostaEsperada:'1, 2, 3, 6, 9, 18', dica:'Liste os números que dividem 18 sem deixar resto.'},
+  {id:'q2', categoria:'Primo ou composto', enunciado:'17 é primo ou composto?', respostaEsperada:'primo', dica:'Veja quantos divisores positivos ele possui.'},
+  {id:'q3', categoria:'Fatoração prima', enunciado:'Fatore 36 em fatores primos.', respostaEsperada:'2² × 3²', dica:'Quebre 36 em fatores que sejam primos.'},
+  {id:'q4', categoria:'Termos semelhantes', enunciado:'Resolva: 3x + 5x = ?', respostaEsperada:'8x', dica:'Some apenas os coeficientes.'},
+  {id:'q5', categoria:'Multiplicação algébrica', enunciado:'Resolva: 4x × 2x = ?', respostaEsperada:'8x²', dica:'Multiplique os números e depois as letras.'},
+  {id:'q6', categoria:'FCE', enunciado:'Coloque em fator comum: 15x + 10.', respostaEsperada:'5(3x + 2)', dica:'Procure o maior fator comum entre 15 e 10.'}
+];
+
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 4500); }
+function escapeHtml(s){ return String(s??'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function setBusy(btn, busy, text){ btn.disabled = busy; btn.innerHTML = busy ? `<span class="loading"></span> ${text}` : text; }
+function renderQuiz(list){
+  questions = list.map((q,i)=>({ id:q.id || `q${i+1}`, categoria:q.categoria || 'Quiz', enunciado:q.enunciado || q.pergunta || '', respostaEsperada:q.respostaEsperada || '', dica:q.dica || '' }));
+  results.clear();
+  if(!questions.length){ $('quiz').innerHTML = '<div class="empty">A IA não retornou perguntas. Tente outra categoria.</div>'; updateScore(); return; }
+  $('quiz').innerHTML = questions.map((q,i)=>`
+    <article class="card" data-id="${escapeHtml(q.id)}">
+      <span class="tag">${i+1}. ${escapeHtml(q.categoria)}</span>
+      <div class="q">${escapeHtml(q.enunciado)}</div>
+      <input class="input answer" id="ans-${escapeHtml(q.id)}" placeholder="Digite sua resposta livremente..." autocomplete="off" />
+      <div class="feedback" id="fb-${escapeHtml(q.id)}">Aguardando resposta.</div>
+      <div class="miniActions">
+        <button class="btn secondary" type="button" onclick="checkOne('${escapeHtml(q.id)}')">Corrigir com IA</button>
+        <button class="btn secondary" type="button" onclick="showHint('${escapeHtml(q.id)}')">Dica</button>
+      </div>
+      <div class="explain" id="ex-${escapeHtml(q.id)}"></div>
+    </article>`).join('');
+  $('checkAll').disabled = false; $('newSame').disabled = false; $('reset').disabled = false; updateScore();
+}
+function showHint(id){ const q=questions.find(x=>x.id===id); const ex=$('ex-'+id); ex.textContent=q?.dica || 'Sem dica para esta pergunta.'; ex.classList.add('show'); }
+function updateScore(){
+  const vals=[...results.values()]; const ok=vals.filter(x=>x.correta).length;
+  $('okCount').textContent=ok; $('answeredCount').textContent=vals.length; $('totalCount').textContent=questions.length; $('percentCount').textContent=questions.length?Math.round(ok/questions.length*100)+'%':'0%';
+}
+async function generateQuiz(config){
+  lastConfig = config;
+  const btn=$('generateBtn'); setBusy(btn,true,'Gerando...');
+  try{
+    const r = await fetch('/api/quiz', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(config)});
+    const data = await r.json();
+    if(!r.ok) throw new Error(data.error || 'Falha ao gerar quiz.');
+    renderQuiz(data.questoes || []); toast(data.fonte === 'fallback' ? 'Usei fallback local porque a IA não está configurada.' : 'Quiz gerado pela IA.');
+  }catch(e){ toast(e.message + ' Usei demo local.'); renderQuiz(demoMath); }
+  finally{ setBusy(btn,false,'Gerar quiz com IA'); }
+}
+async function checkOne(id){
+  const q=questions.find(x=>x.id===id); if(!q) return;
+  const resposta = $('ans-'+id).value.trim(); const fb=$('fb-'+id); const ex=$('ex-'+id);
+  if(!resposta){ fb.className='feedback warn'; fb.textContent='Digite uma resposta antes de corrigir.'; return; }
+  fb.className='feedback warn'; fb.innerHTML='<span class="loading"></span> Corrigindo com IA...';
+  try{
+    const r = await fetch('/api/corrigir', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({questao:q, respostaAluno:resposta})});
+    const data = await r.json(); if(!r.ok) throw new Error(data.error || 'Falha na correção.');
+    results.set(id, {correta: !!data.correta});
+    fb.className = 'feedback ' + (data.correta ? 'ok' : 'bad');
+    fb.textContent = (data.correta ? '✅ Correto! ' : '❌ Ainda não. ') + (data.resumo || '');
+    ex.textContent = data.explicacao || data.respostaCorreta || '';
+    if(ex.textContent) ex.classList.add('show'); updateScore();
+  }catch(e){
+    const local = localMathCheck(q, resposta); results.set(id,{correta:local.correta});
+    fb.className='feedback '+(local.correta?'ok':'bad'); fb.textContent=(local.correta?'✅ Correto! ':'❌ Ainda não. ')+local.resumo;
+    ex.textContent=local.explicacao; ex.classList.add('show'); updateScore();
+  }
+}
+function norm(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/²/g,'^2').replace(/[×·]/g,'*').replace(/\s+/g,'').replace(/,/g,'.');}
+function localMathCheck(q, a){
+  const n=norm(a), txt=norm(q.enunciado); let ok=false;
+  if(txt.includes('divisores')&&txt.includes('18')) ok=JSON.stringify((a.match(/-?\d+/g)||[]).map(Number).sort((x,y)=>x-y))===JSON.stringify([1,2,3,6,9,18]);
+  else if(txt.includes('17')&&(txt.includes('primo')||txt.includes('composto'))) ok=/primo/i.test(a)&&!/composto/i.test(a);
+  else if(txt.includes('36')) ok=['2^2*3^2','2*2*3*3','3^2*2^2','3*3*2*2'].includes(n);
+  else if(txt.includes('3x+5x')) ok=n==='8x';
+  else if(txt.includes('4x*2x')) ok=['8x^2','8x2'].includes(n.replace(/\*/g,''));
+  else if(txt.includes('15x+10')) ok=n.replace(/\*/g,'')==='5(3x+2)';
+  return {correta:ok, resumo: ok?'Correção local confirmou.':'Correção local não aceitou essa resposta.', explicacao:q.dica || ('Resposta esperada: '+(q.respostaEsperada||''))};
+}
+
+function switchTab(which){
+  const quiz = which === 'quiz';
+  $('tabQuiz').classList.toggle('active', quiz); $('tabChat').classList.toggle('active', !quiz);
+  $('quizView').classList.toggle('active', quiz); $('chatView').classList.toggle('active', !quiz);
+}
+function loadMemory(){
+  $('userName').value = localStorage.getItem('aiUserName') || '';
+  $('memory').value = localStorage.getItem('aiMemory') || '';
+}
+function saveMemory(){
+  localStorage.setItem('aiUserName', $('userName').value.trim());
+  localStorage.setItem('aiMemory', $('memory').value.trim());
+  toast('Memória salva neste navegador.');
+}
+function renderMessages(){
+  const box = $('messages');
+  if(!chatMessages.length){
+    const name = localStorage.getItem('aiUserName') || '';
+    box.innerHTML = `<div class="msg ai">Oi${name ? ', '+escapeHtml(name) : ''}! 😊 Eu posso conversar com você, explicar matérias, ajudar a estudar e também criar quizzes. Como posso te ajudar agora?</div>`;
+    return;
+  }
+  box.innerHTML = chatMessages.map(m => `<div class="msg ${m.role==='user'?'user':'ai'}">${escapeHtml(m.content)}</div>`).join('');
+  box.scrollTop = box.scrollHeight;
+}
+async function sendChat(text){
+  chatMessages.push({role:'user', content:text}); renderMessages();
+  const btn=$('sendChat'); setBusy(btn,true,'...');
+  try{
+    const perfil = $('userName').value.trim() ? `Nome do usuário: ${$('userName').value.trim()}` : '';
+    const r = await fetch('/api/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mensagens:chatMessages, perfil, memoria:$('memory').value.trim()})});
+    const data = await r.json();
+    if(!r.ok) throw new Error(data.error || 'Falha ao conversar com IA.');
+    chatMessages.push({role:'assistant', content:data.texto || 'Não consegui responder agora.'});
+    chatMessages = chatMessages.slice(-16);
+    localStorage.setItem('chatMessages', JSON.stringify(chatMessages));
+    renderMessages();
+  }catch(e){
+    chatMessages.push({role:'assistant', content:'Desculpa, tive um problema para responder agora. Tenta de novo em alguns segundos. Detalhe: '+e.message});
+    renderMessages();
+  }finally{ setBusy(btn,false,'Enviar'); }
+}
+
+$('agentForm').addEventListener('submit', e=>{ e.preventDefault(); generateQuiz({categoria:$('categoria').value, quantidade:Number($('quantidade').value), nivel:$('nivel').value, instrucoes:$('instrucoes').value}); });
+$('mathDemo').onclick=()=>{ lastConfig={categoria:'matemática básica', quantidade:6, nivel:'médio'}; renderQuiz(demoMath); toast('Demo local carregada.'); };
+$('checkAll').onclick=async()=>{ for(const q of questions) await checkOne(q.id); };
+$('newSame').onclick=()=> lastConfig ? generateQuiz(lastConfig) : toast('Gere um quiz primeiro.');
+$('reset').onclick=()=>{ results.clear(); questions.forEach(q=>{ $('ans-'+q.id).value=''; $('fb-'+q.id).className='feedback'; $('fb-'+q.id).textContent='Aguardando resposta.'; $('ex-'+q.id).classList.remove('show'); $('ex-'+q.id).textContent=''; }); updateScore(); };
+$('tabQuiz').onclick=()=>switchTab('quiz');
+$('tabChat').onclick=()=>switchTab('chat');
+$('saveMemory').onclick=saveMemory;
+$('clearChat').onclick=()=>{ chatMessages=[]; localStorage.removeItem('chatMessages'); renderMessages(); toast('Conversa limpa.'); };
+$('chatForm').addEventListener('submit', e=>{ e.preventDefault(); const text=$('chatInput').value.trim(); if(!text) return; $('chatInput').value=''; sendChat(text); });
+loadMemory();
+try{ chatMessages = JSON.parse(localStorage.getItem('chatMessages') || '[]') || []; }catch{ chatMessages=[]; }
+renderMessages();
+</script>
+</body>
+</html>
