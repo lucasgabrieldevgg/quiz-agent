@@ -47,8 +47,22 @@ async function callAI({ apiKey, baseUrl, models, messages, max_tokens, temperatu
   throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
 }
 
+/* 🚦 Limite diário de IA (generoso) — mantém o site grátis no ar */
+const LIMITE_DIA=40;
+const _HITS=new Map();
+function limiteEstourado(req){
+  const hoje=new Date().toISOString().slice(0,10);
+  for(const k of [..._HITS.keys()]) if(!k.startsWith(hoje)) _HITS.delete(k);
+  const ip=String(req.headers['x-forwarded-for']||'').split(',')[0].trim()||'anon';
+  const k=hoje+':'+ip;
+  const n=_HITS.get(k)||0;
+  if(n>=LIMITE_DIA) return true;
+  _HITS.set(k,n+1);
+  return false;
+}
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Use POST.' });
+  if (limiteEstourado(req)) return res.status(429).json({ error: 'Você bateu o limite diário de IA (40 usos/dia por pessoa) — volta amanhã! 💙' });
 
   const { categoria = 'matemática', quantidade = 6, nivel = 'médio', instrucoes = '' } = req.body || {};
   const n = Math.max(1, Math.min(Number(quantidade) || 6, 12));
