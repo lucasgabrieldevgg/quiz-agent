@@ -18,8 +18,9 @@ function ok(cond, nome) {
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-function carregar() {
+function carregar(seeds) {
   const dom = new JSDOM(htmlSemScript, { url: 'http://localhost/', runScripts: 'outside-only' });
+  for (const [k, v] of Object.entries(seeds || {})) dom.window.localStorage.setItem(k, v);
   dom.window.eval(scripts);
   return dom;
 }
@@ -129,6 +130,77 @@ function carregar() {
     ok(w.localStorage.getItem('chatMessages') === null && d.querySelectorAll('.msg').length === 1, 'limpar conversa restaura a saudação');
   }
 
+  console.log('— 📌 CATEGORIA PERSISTENTE (bug do "sempre aparece") —');
+  {
+    ok(!/id="categoria"[^>]*value="matemática: divisores/.test(html), 'input de categoria NÃO tem value hardcodado');
+    const dom = carregar({ aiLastCategoria: 'história do Brasil' });
+    ok(dom.window.document.getElementById('categoria').value === 'história do Brasil', 'recarregar repõe a última categoria real (localStorage)');
+    const domVazio = carregar();
+    ok(domVazio.window.document.getElementById('categoria').value === '', 'primeira visita: campo vazio com placeholder');
+  }
+
+  console.log('— 🌐 PESQUISAR ANTES DE GERAR —');
+  {
+    const dom = carregar();
+    const w = dom.window, d = w.document;
+    let capturado = null;
+    w.fetch = async (url, opt) => { capturado = JSON.parse(opt.body); return { ok: true, json: async () => ({ fonte: 'ia', modelo: 'teste/x', questoes: [{ id: 'q1', categoria: 't', enunciado: '2+2?', respostaEsperada: '4', dica: 'd' }] }) }; };
+    d.getElementById('categoria').value = 'tabuada do 7';
+    d.getElementById('pesquisarQuiz').checked = true;
+    d.getElementById('agentForm').dispatchEvent(new w.Event('submit', { cancelable: true }));
+    await sleep(60);
+    ok(capturado && capturado.categoria === 'tabuada do 7', 'gerar envia a categoria digitada');
+    ok(capturado && capturado.pesquisar === true, 'checkbox 🌐 vai no payload');
+    ok(w.localStorage.getItem('aiLastCategoria') === 'tabuada do 7', 'categoria salva pra próxima visita');
+    ok(d.querySelectorAll('#quiz .card').length === 1, 'quiz renderizou');
+  }
+
+  console.log('— 📎 ANEXOS + REGRA DO ENVIAR —');
+  {
+    const dom = carregar();
+    const w = dom.window, d = w.document;
+    ok(d.getElementById('sendChat').disabled === true, 'Enviar nasce desabilitado (sem texto, sem anexo)');
+    d.getElementById('chatInput').value = 'oi';
+    w.updateSend();
+    ok(d.getElementById('sendChat').disabled === false, 'com texto, Enviar habilita');
+    d.getElementById('chatInput').value = '';
+    w.updateSend();
+    ok(d.getElementById('sendChat').disabled === true, 'sem texto de novo, desabilita');
+    // anexar txt (FileReader real do jsdom)
+    const f = new w.File(['linha 1\nlinha 2 com conteúdo'], 'resumo.txt', { type: 'text/plain' });
+    await w.processarFiles([f]);
+    await sleep(80);
+    ok(d.querySelectorAll('#anexosBox .anexo-chip').length === 1, 'anexo vira chip no composer');
+    ok(d.getElementById('sendChat').disabled === false, 'com anexo (sem texto), Enviar habilita');
+    ok(d.getElementById('anexosBox').textContent.includes('resumo.txt'), 'chip mostra o nome do arquivo');
+    // enviar com anexo: payload leva conteudo + mensagem placeholder
+    let capturado = null;
+    w.fetch = async (url, opt) => { capturado = JSON.parse(opt.body); return { ok: true, json: async () => ({ texto: 'Li o arquivo!' }) }; };
+    d.getElementById('chatForm').dispatchEvent(new w.Event('submit', { cancelable: true }));
+    await sleep(80);
+    ok(capturado && Array.isArray(capturado.anexos) && capturado.anexos[0].conteudo.includes('linha 1'), 'anexo vai no payload com o conteúdo extraído');
+    ok(capturado && capturado.mensagens[capturado.mensagens.length - 1].content.includes('[arquivo anexado'), 'mensagem do user cita o anexo');
+    ok(d.querySelectorAll('#anexosBox .anexo-chip').length === 0, 'após enviar, chips limpos');
+    ok(d.getElementById('sendChat').disabled === true, 'e o Enviar volta a desabilitar');
+    // submit sem nada: não envia nada
+    let nada = null;
+    w.fetch = async (url, opt) => { nada = JSON.parse(opt.body); return { ok: true, json: async () => ({ texto: 'x' }) }; };
+    d.getElementById('chatForm').dispatchEvent(new w.Event('submit', { cancelable: true }));
+    await sleep(60);
+    ok(nada === null, 'sem texto E sem anexo: nada é enviado');
+
+    // truncamento
+    const grande = new w.File(['x'.repeat(70000)], 'grande.txt', { type: 'text/plain' });
+    await w.processarFiles([grande]);
+    await sleep(80);
+    ok(d.getElementById('anexosBox').textContent.includes('truncado'), 'arquivo acima de 60k chars é truncado com aviso');
+    // 🌐 do chat
+    d.getElementById('btnWeb').click();
+    ok(d.getElementById('btnWeb').classList.contains('on'), '🌐 do chat liga modo pesquisa');
+    d.getElementById('btnWeb').click();
+    ok(!d.getElementById('btnWeb').classList.contains('on'), '🌐 desliga');
+  }
+
   console.log('— 🔥 CRA: NADA DE CARA DE IA —');
   {
     ok(/font-family:'Atkinson Hyperlegible'/.test(html) && !/font-family:Inter|Inter,system-ui/.test(html), 'corpo em Atkinson (nada de Inter/system como personalidade)');
@@ -149,7 +221,15 @@ function carregar() {
       const src = fs.readFileSync(path.join(__dirname, '..', 'api', f), 'utf8');
       ok(/export default async function handler/.test(src), `api/${f} exporta handler Vercel`);
       ok(!/ghp_[A-Za-z0-9]{20,}|sk-or-v1-|sk-ant-|AIzaSy|vcp_[A-Za-z0-9]{20,}/.test(src), `api/${f}: zero segredo (tudo em env)`);
+      ok(src.includes('text.pollinations.ai'), `api/${f}: Pollinations como último recurso`);
     }
+    const quizSrc = fs.readFileSync(path.join(__dirname, '..', 'api', 'quiz.js'), 'utf8');
+    const chatSrc = fs.readFileSync(path.join(__dirname, '..', 'api', 'chat.js'), 'utf8');
+    ok(quizSrc.includes('pesquisarWeb') && quizSrc.includes('api.openalex.org'), 'api/quiz: pesquisa web (OpenAlex)');
+    ok(chatSrc.includes('pesquisarWeb') && chatSrc.includes('wikipedia.org'), 'api/chat: pesquisa web (Wikipédia)');
+    ok(chatSrc.includes('anexosSafe') && chatSrc.includes('<arquivo>'), 'api/chat: anexos injetados como <arquivo> explicado');
+    const vcfg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'vercel.json'), 'utf8'));
+    ok(vcfg.functions && vcfg.functions['api/*.js'] && vcfg.functions['api/*.js'].maxDuration === 30, 'vercel.json: maxDuration 30s (fim do timeout de 10s)');
   }
 
   console.log(`\n═══ RESULTADO: ${pass} ✓ · ${fail} ✗ ═══`);

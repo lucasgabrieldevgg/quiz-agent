@@ -85,7 +85,18 @@
     .msg{max-width:86%;margin:0 0 12px;padding:11px 13px;border-radius:10px;line-height:1.5;white-space:pre-wrap;font-size:15px}
     .msg.user{margin-left:auto;background:var(--papel);color:var(--papel-tinta);border-bottom-right-radius:3px;box-shadow:2px 3px 0 rgba(0,0,0,.3)}
     .msg.ai{margin-right:auto;background:transparent;border:1.5px solid var(--giz-fraco);color:var(--giz);border-bottom-left-radius:3px}
-    .chatForm{display:flex;gap:8px;margin-top:10px}
+    .chatForm{display:flex;gap:8px;margin-top:10px;align-items:center}
+    .btn-ico{padding:11px 13px;font-size:17px;flex:0 0 auto}
+    .btn-ico.on{border-color:var(--amarelo);color:var(--amarelo);background:rgba(255,217,94,.08)}
+    .checkweb{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--giz-suave);cursor:pointer}
+    .checkweb input{accent-color:var(--amarelo);width:16px;height:16px;cursor:pointer}
+    #anexosBox{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    #anexosBox:empty{display:none}
+    .anexo-chip{display:flex;gap:8px;align-items:center;background:var(--papel);color:var(--papel-tinta);border-radius:8px;padding:7px 10px;font-size:13px;box-shadow:2px 3px 0 rgba(0,0,0,.3);max-width:100%}
+    .anexo-chip b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
+    .anexo-chip small{color:#6b5a3d}
+    .anexo-chip button{border:0;background:none;cursor:pointer;font-size:14px;padding:0 2px;color:#3a5a44}
+    .anexo-chip button:hover{color:var(--professor,#8a2b2b)}
     .chatForm .input{flex:1}
     .memoryBox{margin-top:10px}
     .hintText{font-size:12.5px;color:var(--giz-suave);line-height:1.5;margin-top:8px}
@@ -111,7 +122,7 @@
         <form class="form" id="agentForm">
           <div>
             <div class="label">Categoria/tema do quiz</div>
-            <input class="input" id="categoria" placeholder="Ex.: divisores, álgebra, história do Brasil, inglês, ciências..." value="matemática: divisores, primos, fatoração e álgebra básica" />
+            <input class="input" id="categoria" placeholder="Ex.: divisores, álgebra, história do Brasil, inglês, ciências..." />
           </div>
           <div class="row">
             <div><div class="label">Quantidade</div><select class="select" id="quantidade"><option>3</option><option selected>6</option><option>8</option><option>10</option></select></div>
@@ -121,6 +132,7 @@
             <div class="label">Instruções extras para o agente</div>
             <textarea class="textarea" id="instrucoes" placeholder="Ex.: faça perguntas curtas, aceite respostas equivalentes, explique passo a passo..."></textarea>
           </div>
+          <label class="checkweb"><input type="checkbox" id="pesquisarQuiz" /> 🌐 pesquisar na web antes de gerar (fontes públicas grátis)</label>
           <button class="btn" id="generateBtn" type="submit">Gerar quiz com IA</button>
           <button class="btn secondary" id="mathDemo" type="button">Usar demo local de matemática</button>
         </form>
@@ -167,10 +179,15 @@
         </div>
         <div class="panel chatBox">
           <div class="messages" id="messages"></div>
+          <div id="anexosBox"></div>
           <form class="chatForm" id="chatForm">
+            <button class="btn secondary btn-ico" id="btnAnexo" type="button" title="Anexar arquivo (txt, md, csv, json, pdf)">📎</button>
             <input class="input" id="chatInput" placeholder="Converse com a IA... Ex.: me explica fatoração de um jeito fácil" autocomplete="off" />
-            <button class="btn" id="sendChat" type="submit">Enviar</button>
+            <button class="btn secondary btn-ico" id="btnWeb" type="button" title="Pesquisar na web antes de responder esta mensagem">🌐</button>
+            <button class="btn" id="sendChat" type="submit" disabled>Enviar</button>
+            <input type="file" id="fileInput" hidden multiple accept=".txt,.md,.csv,.json,.pdf,text/plain,application/pdf" />
           </form>
+          <div class="hintText">📎 extrai o conteúdo (txt, md, csv, json e pdf) e entrega pra IA junto com a tua mensagem — só sai quando VOCÊ aperta Enviar. 🌐 pesquisa na web na hora da resposta.</div>
         </div>
       </div>
     </section>
@@ -223,13 +240,14 @@ function updateScore(){
 }
 async function generateQuiz(config){
   lastConfig = config;
+  try{ localStorage.setItem('aiLastCategoria', config.categoria || ''); }catch(e){}
   const btn=$('generateBtn'); setBusy(btn,true,'Gerando...');
   try{
-    const r = await fetch('/api/quiz', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(config)});
+    const r = await fetch('/api/quiz', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({...config, pesquisar:$('pesquisarQuiz').checked})});
     const data = await r.json();
     if(!r.ok) throw new Error(data.error || 'Falha ao gerar quiz.');
-    renderQuiz(data.questoes || []); toast(data.fonte === 'fallback' ? 'Usei fallback local porque a IA não está configurada.' : 'Quiz gerado pela IA.');
-  }catch(e){ toast(e.message + ' Usei demo local.'); renderQuiz(demoMath); }
+    renderQuiz(data.questoes || []); toast(data.fonte === 'fallback' ? 'IA não configurada — mostrei a demo local.' : 'Quiz gerado pela IA' + (data.modelo ? ' ('+data.modelo.split('/')[0]+')' : '') + '.');
+  }catch(e){ toast('⚠️ ' + e.message + ' — a IA deve estar cheia. Tenta de novo em alguns segundos ou use a demo local.'); }
   finally{ setBusy(btn,false,'Gerar quiz com IA'); }
 }
 async function checkOne(id){
@@ -271,6 +289,7 @@ function switchTab(which){
 function loadMemory(){
   $('userName').value = localStorage.getItem('aiUserName') || '';
   $('memory').value = localStorage.getItem('aiMemory') || '';
+  $('categoria').value = localStorage.getItem('aiLastCategoria') || '';
 }
 function saveMemory(){
   localStorage.setItem('aiUserName', $('userName').value.trim());
@@ -288,22 +307,99 @@ function renderMessages(){
   box.scrollTop = box.scrollHeight;
 }
 async function sendChat(text){
-  chatMessages.push({role:'user', content:text}); renderMessages();
+  const anexosPayload = anexosPendentes.map(a=>({nome:a.nome, tipo:a.tipo, conteudo:a.conteudo}));
+  const textoFinal = (text||'').trim() || (anexosPayload.length ? '[arquivo anexado: ' + anexosPayload.map(a=>a.nome).join(', ') + ']' : '');
+  if(!textoFinal && !anexosPayload.length) return;
+  chatMessages.push({role:'user', content:textoFinal}); renderMessages();
   const btn=$('sendChat'); setBusy(btn,true,'...');
   try{
     const perfil = $('userName').value.trim() ? `Nome do usuário: ${$('userName').value.trim()}` : '';
-    const r = await fetch('/api/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mensagens:chatMessages, perfil, memoria:$('memory').value.trim()})});
+    const r = await fetch('/api/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mensagens:chatMessages, perfil, memoria:$('memory').value.trim(), pesquisar:webChat, anexos:anexosPayload})});
     const data = await r.json();
     if(!r.ok) throw new Error(data.error || 'Falha ao conversar com IA.');
     chatMessages.push({role:'assistant', content:data.texto || 'Não consegui responder agora.'});
     chatMessages = chatMessages.slice(-16);
     localStorage.setItem('chatMessages', JSON.stringify(chatMessages));
     renderMessages();
+    limparAnexos();
   }catch(e){
     chatMessages.push({role:'assistant', content:'Desculpa, tive um problema para responder agora. Tenta de novo em alguns segundos. Detalhe: '+e.message});
     renderMessages();
-  }finally{ setBusy(btn,false,'Enviar'); }
+  }finally{ setBusy(btn,false,'Enviar'); updateSend(); if(webChat){ webChat=false; $('btnWeb').classList.remove('on'); } }
 }
+
+// ===================== 📎 ANEXOS + 🌐 WEB (composer do chat) =====================
+let anexosPendentes = [];
+let webChat = false;
+const LIM_ANEXO = 60000;
+function updateSend(){
+  const tem = $('chatInput').value.trim().length > 0 || anexosPendentes.length > 0;
+  $('sendChat').disabled = !tem;
+}
+function renderAnexos(){
+  $('anexosBox').innerHTML = anexosPendentes.map((a,i)=>`<div class="anexo-chip">📎 <b title="${escapeHtml(a.nome)}">${escapeHtml(a.nome)}</b> <small>${a.chars.toLocaleString('pt-BR')} car.${a.truncado?' · truncado':''}</small><button type="button" title="Baixar como .txt" data-baixar="${i}">⬇</button><button type="button" title="Remover anexo" data-remover="${i}">✖</button></div>`).join('');
+  $('anexosBox').querySelectorAll('[data-remover]').forEach(b=>b.onclick=()=>{ anexosPendentes.splice(+b.dataset.remover,1); renderAnexos(); updateSend(); });
+  $('anexosBox').querySelectorAll('[data-baixar]').forEach(b=>b.onclick=()=>baixarAnexo(+b.dataset.baixar));
+  updateSend();
+}
+function limparAnexos(){ anexosPendentes = []; renderAnexos(); }
+function baixarAnexo(i){
+  const a = anexosPendentes[i]; if(!a) return;
+  const blob = new Blob([a.conteudo], {type:'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url; link.download = a.nome.replace(/\.[^.]+$/,'') + '.txt';
+  document.body.appendChild(link); link.click(); link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 3000);
+}
+function carregarPdfJs(){
+  return new Promise((resolve, reject)=>{
+    if(window.pdfjsLib) return resolve();
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload=()=>{ window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; resolve(); };
+    s.onerror=()=>reject(new Error('não consegui carregar o leitor de PDF'));
+    document.head.appendChild(s);
+  });
+}
+async function extrairArquivo(file){
+  const nome=file.name, baixo=nome.toLowerCase();
+  if(baixo.endsWith('.pdf')){
+    await carregarPdfJs();
+    const buf=await file.arrayBuffer();
+    const pdf=await window.pdfjsLib.getDocument({data:buf}).promise;
+    let txt='';
+    const paginas=Math.min(pdf.numPages, 60);
+    for(let p=1;p<=paginas;p++){
+      const page=await pdf.getPage(p);
+      const c=await page.getTextContent();
+      txt+=c.items.map(it=>it.str).join(' ')+'\n';
+    }
+    return {nome, tipo:'pdf', conteudo:txt.trim()};
+  }
+  if(/\.(txt|md|csv|json|log|xml|html?)$/.test(baixo) || (file.type||'').startsWith('text/')){
+    const txt=await new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(String(fr.result||'')); fr.onerror=()=>rej(new Error('não consegui ler o arquivo')); fr.readAsText(file); });
+    return {nome, tipo:(baixo.split('.').pop()||'txt'), conteudo:txt};
+  }
+  throw new Error('formato ainda não suportado — usa txt, md, csv, json ou pdf');
+}
+async function processarFiles(files){
+  for(const file of files){
+    try{
+      toast('Extraindo "'+file.name+'"...');
+      const {nome, tipo, conteudo} = await extrairArquivo(file);
+      if(!conteudo || !conteudo.trim()) throw new Error('não achei texto nesse arquivo');
+      const truncado = conteudo.length > LIM_ANEXO;
+      anexosPendentes.push({nome, tipo, conteudo: truncado ? conteudo.slice(0,LIM_ANEXO) : conteudo, chars: Math.min(conteudo.length, LIM_ANEXO), truncado});
+      renderAnexos();
+      toast('"'+nome+'" extraído: '+Math.min(conteudo.length,LIM_ANEXO).toLocaleString('pt-BR')+' caracteres. Usa o ⬇ no chip pra baixar como TXT, ou aperta Enviar pra mandar pra IA.');
+    }catch(e){ toast('⚠️ "'+file.name+'": '+e.message); }
+  }
+}
+$('btnAnexo').onclick=()=>$('fileInput').click();
+$('fileInput').onchange=e=>{ const fs=[...e.target.files]; e.target.value=''; if(fs.length) processarFiles(fs); };
+$('btnWeb').onclick=()=>{ webChat=!webChat; $('btnWeb').classList.toggle('on', webChat); };
+$('chatInput').addEventListener('input', updateSend);
 
 $('agentForm').addEventListener('submit', e=>{ e.preventDefault(); generateQuiz({categoria:$('categoria').value, quantidade:Number($('quantidade').value), nivel:$('nivel').value, instrucoes:$('instrucoes').value}); });
 $('mathDemo').onclick=()=>{ lastConfig={categoria:'matemática básica', quantidade:6, nivel:'médio'}; renderQuiz(demoMath); toast('Demo local carregada.'); };
@@ -314,10 +410,11 @@ $('tabQuiz').onclick=()=>switchTab('quiz');
 $('tabChat').onclick=()=>switchTab('chat');
 $('saveMemory').onclick=saveMemory;
 $('clearChat').onclick=()=>{ chatMessages=[]; localStorage.removeItem('chatMessages'); renderMessages(); toast('Conversa limpa.'); };
-$('chatForm').addEventListener('submit', e=>{ e.preventDefault(); const text=$('chatInput').value.trim(); if(!text) return; $('chatInput').value=''; sendChat(text); });
+$('chatForm').addEventListener('submit', e=>{ e.preventDefault(); const text=$('chatInput').value.trim(); if(!text && !anexosPendentes.length) return; $('chatInput').value=''; sendChat(text); });
 loadMemory();
 try{ chatMessages = JSON.parse(localStorage.getItem('chatMessages') || '[]') || []; }catch{ chatMessages=[]; }
 renderMessages();
+updateSend();
 </script>
 </body>
 </html>

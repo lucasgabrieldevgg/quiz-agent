@@ -43,6 +43,16 @@ async function callAI({ apiKey, baseUrl, models, messages, max_tokens, temperatu
     lastError = data;
     if (![408, 409, 429, 500, 502, 503, 504].includes(r.status)) break;
   }
+  // 🟡 último recurso (regra da casa): Pollinations — grátis, sem chave
+  try {
+    const pr = await fetch('https://text.pollinations.ai/openai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'openai', messages, temperature, max_tokens })
+    });
+    const pd = await pr.json().catch(() => ({}));
+    if (pr.ok && pd.choices && pd.choices[0] && pd.choices[0].message && pd.choices[0].message.content) return { data: pd, model: 'pollinations/openai' };
+  } catch {}
   const msg = lastError?.error?.message || lastError?.error || 'Erro na IA.';
   throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
 }
@@ -60,15 +70,49 @@ function limiteEstourado(req){
   _HITS.set(k,n+1);
   return false;
 }
+
+/* 🌐 pesquisa web — fontes públicas grátis, keyless (regra da casa) */
+function palavrasChave(txt, max){
+  const stop = new Set(['de','da','do','das','dos','e','as','os','um','uma','com','para','por','em','no','na','nos','nas','sobre','básica','basica','exercicios','exercícios']);
+  return String(txt||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(w=>w.length>2 && !stop.has(w)).slice(0,max||3);
+}
+async function pesquisarWeb(topico){
+  const partes = [];
+  try {
+    const q = palavrasChave(topico,3).join(' ');
+    if (q) {
+      const r = await fetch('https://api.openalex.org/works?filter=title.search:'+encodeURIComponent(q)+'&per-page=3&select=title,publication_year,cited_by_count&mailto=app-semeador@proton.me');
+      if (r.ok) { const d = await r.json();
+        const arts = (d.results||[]).map(w=>'- "'+(w.title||'')+'" ('+(w.publication_year||'?')+'), '+(w.cited_by_count||0)+' citações').filter(s=>s.length>15);
+        if (arts.length) partes.push('TRABALHOS ACADÊMICOS RELACIONADOS (OpenAlex):\n'+arts.join('\n'));
+      }
+    }
+  } catch {}
+  try {
+    const q2 = palavrasChave(topico,4).join(' ');
+    if (q2) {
+      const r = await fetch('https://pt.wikipedia.org/w/api.php?action=query&list=search&srsearch='+encodeURIComponent(q2)+'&srlimit=3&format=json&origin=*');
+      if (r.ok) { const d = await r.json();
+        const arts = (d.query&&d.query.search||[]).map(s=>'- '+s.title+': '+String(s.snippet||'').replace(/<[^>]+>/g,''));
+        if (arts.length) partes.push('RESUMOS DA WIKIPÉDIA (pt):\n'+arts.join('\n'));
+      }
+    }
+  } catch {}
+  return partes.join('\n\n');
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Use POST.' });
   if (limiteEstourado(req)) return res.status(429).json({ error: 'Você bateu o limite diário de IA (40 usos/dia por pessoa) — volta amanhã! 💙' });
 
-  const { categoria = 'matemática', quantidade = 6, nivel = 'médio', instrucoes = '' } = req.body || {};
+  const { categoria = 'matemática', quantidade = 6, nivel = 'médio', instrucoes = '', pesquisar = false } = req.body || {};
   const n = Math.max(1, Math.min(Number(quantidade) || 6, 12));
   const { apiKey, baseUrl, models } = getConfig();
 
   if (!apiKey) return res.status(200).json({ fonte: 'fallback', questoes: fallbackMath.slice(0, n) });
+
+  let contextoWeb = '';
+  if (pesquisar) { contextoWeb = await pesquisarWeb(categoria); }
 
   const messages = [
     { role: 'system', content: 'Você é um agente criador de quizzes educacionais em português do Brasil. Você pode mudar totalmente a categoria conforme o usuário pedir. Crie perguntas abertas, não múltipla escolha. Retorne APENAS JSON válido.' },
@@ -80,7 +124,8 @@ Instruções extras: ${instrucoes || 'nenhuma'}.
 Formato obrigatório:
 {"titulo":"string","questoes":[{"id":"q1","categoria":"subtema","enunciado":"pergunta aberta","respostaEsperada":"resposta curta ou critério","dica":"dica curta"}]}
 
-Regras: não crie alternativas; perguntas abertas; em matemática aceite equivalentes; seja claro.` }
+Regras: não crie alternativas; perguntas abertas; em matemática aceite equivalentes; seja claro.` },
+    ...(contextoWeb ? [{ role: 'system', content: 'CONTEXTO PESQUISADO NA WEB AGORA (fontes públicas — use como inspiração fiel, não invente além dele):\n\n' + contextoWeb }] : [])
   ];
 
   try {

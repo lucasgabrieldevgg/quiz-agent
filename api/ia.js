@@ -47,7 +47,22 @@ export default async function handler(req, res) {
       })
     });
     const data = await r.json();
-    if (!r.ok) return res.status(r.status).json(data);
+    if (!r.ok) {
+      // 🟡 último recurso (regra da casa): Pollinations — grátis, sem chave
+      try {
+        const pr = await fetch('https://text.pollinations.ai/openai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: 'openai', messages: [
+            { role: 'system', content: 'Você é um tutor educacional claro, gentil e objetivo.' },
+            { role: 'user', content: prompt }
+          ], temperature: 0.3, max_tokens: 400 })
+        });
+        const pd = await pr.json().catch(() => ({}));
+        if (pr.ok && pd.choices?.[0]?.message?.content) return res.status(200).json({ texto: pd.choices[0].message.content, modelo: 'pollinations/openai' });
+      } catch {}
+      return res.status(r.status).json(data);
+    }
     return res.status(200).json({ texto: data.choices?.[0]?.message?.content || 'Sem resposta.' });
   } catch (err) {
     return res.status(500).json({ error: 'Falha ao chamar a IA.', detail: String(err?.message || err) });

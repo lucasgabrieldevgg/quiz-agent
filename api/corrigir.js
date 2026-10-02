@@ -34,6 +34,16 @@ async function callAI({ apiKey, baseUrl, models, messages, max_tokens, temperatu
     lastError = data;
     if (![408, 409, 429, 500, 502, 503, 504].includes(r.status)) break;
   }
+  // 🟡 último recurso (regra da casa): Pollinations — grátis, sem chave
+  try {
+    const pr = await fetch('https://text.pollinations.ai/openai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'openai', messages, temperature, max_tokens })
+    });
+    const pd = await pr.json().catch(() => ({}));
+    if (pr.ok && pd.choices && pd.choices[0] && pd.choices[0].message && pd.choices[0].message.content) return { data: pd, model: 'pollinations/openai' };
+  } catch {}
   const msg = lastError?.error?.message || lastError?.error || 'Erro na IA.';
   throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
 }

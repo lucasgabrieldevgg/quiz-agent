@@ -31,6 +31,16 @@ async function callAI({ apiKey, baseUrl, models, messages }) {
     lastError = data;
     if (![408, 409, 429, 500, 502, 503, 504].includes(r.status)) break;
   }
+  // 🟡 último recurso (regra da casa): Pollinations — grátis, sem chave
+  try {
+    const pr = await fetch('https://text.pollinations.ai/openai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'openai', messages, temperature, max_tokens })
+    });
+    const pd = await pr.json().catch(() => ({}));
+    if (pr.ok && pd.choices && pd.choices[0] && pd.choices[0].message && pd.choices[0].message.content) return { data: pd, model: 'pollinations/openai' };
+  } catch {}
   const msg = lastError?.error?.message || lastError?.error || 'Erro na IA.';
   throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
 }
@@ -48,11 +58,42 @@ function limiteEstourado(req){
   _HITS.set(k,n+1);
   return false;
 }
+
+/* 🌐 pesquisa web — fontes públicas grátis, keyless (regra da casa) */
+function palavrasChave(txt, max){
+  const stop = new Set(['de','da','do','das','dos','e','as','os','um','uma','com','para','por','em','no','na','nos','nas','sobre','básica','basica','exercicios','exercícios']);
+  return String(txt||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(w=>w.length>2 && !stop.has(w)).slice(0,max||3);
+}
+async function pesquisarWeb(topico){
+  const partes = [];
+  try {
+    const q = palavrasChave(topico,3).join(' ');
+    if (q) {
+      const r = await fetch('https://api.openalex.org/works?filter=title.search:'+encodeURIComponent(q)+'&per-page=3&select=title,publication_year,cited_by_count&mailto=app-semeador@proton.me');
+      if (r.ok) { const d = await r.json();
+        const arts = (d.results||[]).map(w=>'- "'+(w.title||'')+'" ('+(w.publication_year||'?')+'), '+(w.cited_by_count||0)+' citações').filter(s=>s.length>15);
+        if (arts.length) partes.push('TRABALHOS ACADÊMICOS RELACIONADOS (OpenAlex):\n'+arts.join('\n'));
+      }
+    }
+  } catch {}
+  try {
+    const q2 = palavrasChave(topico,4).join(' ');
+    if (q2) {
+      const r = await fetch('https://pt.wikipedia.org/w/api.php?action=query&list=search&srsearch='+encodeURIComponent(q2)+'&srlimit=3&format=json&origin=*');
+      if (r.ok) { const d = await r.json();
+        const arts = (d.query&&d.query.search||[]).map(s=>'- '+s.title+': '+String(s.snippet||'').replace(/<[^>]+>/g,''));
+        if (arts.length) partes.push('RESUMOS DA WIKIPÉDIA (pt):\n'+arts.join('\n'));
+      }
+    }
+  } catch {}
+  return partes.join('\n\n');
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Use POST.' });
   if (limiteEstourado(req)) return res.status(429).json({ error: 'Você bateu o limite diário de IA (40 usos/dia por pessoa) — volta amanhã! 💙' });
 
-  const { mensagens = [], memoria = '', perfil = '' } = req.body || {};
+  const { mensagens = [], memoria = '', perfil = '', pesquisar = false, anexos = [] } = req.body || {};
   const { apiKey, baseUrl, models } = getConfig();
   if (!apiKey) return res.status(500).json({ error: 'IA não configurada. Defina AI_API_KEY na Vercel.' });
 
@@ -73,9 +114,20 @@ ${perfil || 'não informado'}
 
 Memória local do navegador:
 ${memoria || 'sem memória ainda'}`;
+let contextoWeb = '';
+if (pesquisar) {
+  const ultima = [...safeMessages].reverse().find(m => m.role === 'user');
+  if (ultima && ultima.content.trim()) { contextoWeb = await pesquisarWeb(ultima.content); }
+}
+let contextoAnexos = '';
+const anexosSafe = Array.isArray(anexos) ? anexos.slice(0,3).filter(a => a && typeof a.conteudo === 'string' && a.conteudo.length > 0) : [];
+for (const a of anexosSafe) {
+  contextoAnexos += '\n\nARQUIVO ANEXADO PELO ALUNO — nome: "' + String(a.nome||'arquivo.txt').slice(0,80) + '" (tipo: ' + String(a.tipo||'texto').slice(0,24) + ', ' + a.conteudo.length + ' caracteres). O conteúdo completo vem entre <arquivo> e </arquivo>. Use-o como material de estudo principal se a pergunta se relacionar.\n<arquivo>\n' + a.conteudo.slice(0,60000) + '\n</arquivo>';
+}
+const systemFinal = system + (contextoWeb ? '\n\nCONTEXTO PESQUISADO NA WEB AGORA (fontes públicas — cite apenas o que estiver aqui):\n' + contextoWeb : '') + contextoAnexos;
 
   try {
-    const { data, model } = await callAI({ apiKey, baseUrl, models, messages: [{ role: 'system', content: system }, ...safeMessages] });
+    const { data, model } = await callAI({ apiKey, baseUrl, models, messages: [{ role: 'system', content: systemFinal }, ...safeMessages] });
     return res.status(200).json({
       modelo: model,
       texto: data.choices?.[0]?.message?.content || 'Desculpa, não consegui responder agora.'

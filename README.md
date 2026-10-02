@@ -12,6 +12,14 @@
 
 [Leia em Portugues](README.pt-BR.md)
 
+## What's new in v1.2
+
+- **Category persists** (localStorage) — the old hardcoded default is gone; empty field on first visit
+- **🌐 Research mode**: check it before generating a quiz, or press 🌐 in the chat to research the web (OpenAlex + Wikipedia, free public sources) before that answer
+- **📎 Attachments**: attach txt/md/csv/json/log/xml/html or **pdf** (pdf.js extracts the text). Content goes to the AI as an explained `<arquivo>` block — you can ⬇ download it back as .txt, and **Send only enables with text or attachment**
+- **Robust free AI**: Gemma 4 31B → Nemotron 3 Super → Qwen 3.8 → Gemma 4 26B → Pollinations (last resort, keyless)
+- **No more 10s timeouts** (`maxDuration: 30`)
+
 ## The look (CRA — no AI-slop)
 
 Chalkboard classroom: green board, wooden frame, handwritten chalk (Caveat) on Atkinson Hyperlegible body. Zero gradients, zero glassmorphism, zero purple. The audit lives in `tests/cra_test.cjs` (55 checks) — visual tells are regression-tested.
