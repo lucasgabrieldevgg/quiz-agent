@@ -1,6 +1,6 @@
 {
   "name": "quiz-agent",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "description": "Quiz na Lousa — agente de estudos: IA gera questões abertas, corrige respostas livres e conversa; com corretor local de matemática quando a IA cai",
   "scripts": {

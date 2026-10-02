@@ -296,6 +296,12 @@ function saveMemory(){
   localStorage.setItem('aiMemory', $('memory').value.trim());
   toast('Memória salva neste navegador.');
 }
+function renderizarSimples(t){
+  let s = escapeHtml(String(t||''));
+  s = s.replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>').replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<i>$1</i>');
+  s = s.replace(/```[a-z]*\n?/gi, '').replace(/(^|\n)#{1,4}\s+/g, '$1').replace(/`([^`\n]+)`/g, '$1');
+  return s;
+}
 function renderMessages(){
   const box = $('messages');
   if(!chatMessages.length){
@@ -303,7 +309,10 @@ function renderMessages(){
     box.innerHTML = `<div class="msg ai">Oi${name ? ', '+escapeHtml(name) : ''}! 😊 Sou a professora de plantão: explico matérias, crio quizzes na lousa e tiro dúvidas. O que vamos estudar hoje?</div>`;
     return;
   }
-  box.innerHTML = chatMessages.map(m => `<div class="msg ${m.role==='user'?'user':'ai'}">${escapeHtml(m.content)}</div>`).join('');
+  box.innerHTML = chatMessages.map(m => {
+      const corpo = m.role === 'user' ? escapeHtml(m.content) : renderizarSimples(m.content);
+      return `<div class="msg ${m.role==='user'?'user':'ai'}">${corpo}</div>`;
+    }).join('');
   box.scrollTop = box.scrollHeight;
 }
 async function sendChat(text){

@@ -21,7 +21,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 function carregar(seeds) {
   const dom = new JSDOM(htmlSemScript, { url: 'http://localhost/', runScripts: 'outside-only' });
   for (const [k, v] of Object.entries(seeds || {})) dom.window.localStorage.setItem(k, v);
-  dom.window.eval(scripts);
+  dom.window.eval(scripts + `
+    ;globalThis.__Q = { get chatMessages(){ return chatMessages; }, set chatMessages(v){ chatMessages = v; }, renderMessages };`);
   return dom;
 }
 
@@ -201,6 +202,23 @@ function carregar(seeds) {
     ok(!d.getElementById('btnWeb').classList.contains('on'), '🌐 desliga');
   }
 
+  console.log('— 🗨️ RENDERIZAÇÃO DA FALA (fim do ** aparecendo) —');
+  {
+    const dom = carregar();
+    const w = dom.window, d = w.document;
+    w.__Q.chatMessages = [
+      { role: 'assistant', content: 'Isso é **importante** e isso é *detalhe*' },
+      { role: 'assistant', content: 'veja ```python\ncode``` e ## título e `código`' },
+      { role: 'user', content: '**meu** texto *cru* fica igual' }
+    ];
+    w.renderMessages();
+    const msgs = d.querySelectorAll('.msg');
+    ok(msgs[0].querySelector('b') !== null && !msgs[0].textContent.includes('**'), 'assistant: **negrito** vira negrito de verdade');
+    ok(msgs[0].querySelector('i') !== null, '*itálico* vira itálico');
+    ok(!msgs[1].textContent.includes('```') && !msgs[1].textContent.includes('#'), 'assistant: cercos de código e marcas de título somem do texto');
+    ok(msgs[2].textContent.includes('**meu**'), 'user: texto do aluno NUNCA é reinterpretado');
+  }
+
   console.log('— 🔥 CRA: NADA DE CARA DE IA —');
   {
     ok(/font-family:'Atkinson Hyperlegible'/.test(html) && !/font-family:Inter|Inter,system-ui/.test(html), 'corpo em Atkinson (nada de Inter/system como personalidade)');
@@ -230,6 +248,10 @@ function carregar(seeds) {
     ok(chatSrc.includes('anexosSafe') && chatSrc.includes('<arquivo>'), 'api/chat: anexos injetados como <arquivo> explicado');
     const vcfg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'vercel.json'), 'utf8'));
     ok(vcfg.functions && vcfg.functions['api/*.js'] && vcfg.functions['api/*.js'].maxDuration === 30, 'vercel.json: maxDuration 30s (fim do timeout de 10s)');
+    ok(/max_tokens: 2500/.test(chatSrc), 'api/chat: 2500 tokens (fala não corta mais no meio)');
+    ok(/NUNCA use markdown de programador/.test(chatSrc) && /Termine SEMPRE o pensamento/.test(chatSrc), 'api/chat: formato WhatsApp + anti-corte no system');
+    ok(!/Luke/.test(chatSrc), 'api/chat: zero exemplo "Luke"');
+    ok(chatSrc.includes('learnflow'), 'api/chat: indica o Learnflow pra quem quer estudar melhor');
   }
 
   console.log(`\n═══ RESULTADO: ${pass} ✓ · ${fail} ✗ ═══`);
