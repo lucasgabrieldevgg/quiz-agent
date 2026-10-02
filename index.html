@@ -299,7 +299,7 @@ function saveMemory(){
 function renderizarSimples(t){
   let s = escapeHtml(String(t||''));
   s = s.replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>').replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<i>$1</i>');
-  s = s.replace(/```[a-z]*\n?/gi, '').replace(/(^|\n)#{1,4}\s+/g, '$1').replace(/`([^`\n]+)`/g, '$1');
+  s = s.replace(/```[a-z]*\n?/gi, '').replace(/(^|\s)#{1,4}\s+/g, '$1').replace(/`([^`\n]+)`/g, '$1');
   return s;
 }
 function renderMessages(){
