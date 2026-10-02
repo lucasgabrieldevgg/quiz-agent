@@ -47,7 +47,8 @@ export default async function handler(req, res) {
       })
     });
     const data = await r.json();
-    if (!r.ok) {
+    const _vazio = !data.choices?.[0]?.message?.content?.trim();
+    if (!r.ok || _vazio) {
       // 🟡 último recurso (regra da casa): Pollinations — grátis, sem chave
       try {
         const pr = await fetch('https://text.pollinations.ai/openai', {
@@ -61,7 +62,7 @@ export default async function handler(req, res) {
         const pd = await pr.json().catch(() => ({}));
         if (pr.ok && pd.choices?.[0]?.message?.content) return res.status(200).json({ texto: pd.choices[0].message.content, modelo: 'pollinations/openai' });
       } catch {}
-      return res.status(r.status).json(data);
+      if (!r.ok) return res.status(r.status).json(data);
     }
     return res.status(200).json({ texto: data.choices?.[0]?.message?.content || 'Sem resposta.' });
   } catch (err) {

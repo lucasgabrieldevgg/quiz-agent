@@ -3,7 +3,7 @@ function getConfig() {
   const baseUrl = (process.env.AI_BASE_URL || (process.env.CHATANYWHERE_API_KEY ? 'https://api.chatanywhere.tech/v1' : 'https://openrouter.ai/api/v1')).replace(/\/$/, '');
   const model = process.env.AI_MODEL || (baseUrl.includes('openrouter') ? 'google/gemma-4-31b-it:free' : 'gpt-4o-mini');
   const fallbackModels = baseUrl.includes('openrouter')
-    ? ['google/gemma-4-31b-it:free', 'nvidia/nemotron-3-super-120b-a12b:free', 'qwen/qwen3.8-27b:free', 'google/gemma-4-26b-a4b-it:free']
+    ? ['google/gemma-4-31b-it:free', 'google/gemma-4-26b-a4b-it:free', 'nvidia/nemotron-3-super-120b-a12b:free', 'qwen/qwen3.8-27b:free']
     : [model];
   return { apiKey, baseUrl, models: [...new Set([model, ...fallbackModels])] };
 }
@@ -27,6 +27,8 @@ async function callAI({ apiKey, baseUrl, models, messages }) {
       })
     });
     const data = await r.json().catch(() => ({}));
+    const content = data.choices?.[0]?.message?.content;
+    if (r.ok && typeof content === 'string' && !content.trim()) { lastError = { error: { message: model + ' respondeu vazio (raciocínio consumiu os tokens)' } }; continue; }
     if (r.ok) return { data, model };
     lastError = data;
     if (![408, 409, 429, 500, 502, 503, 504].includes(r.status)) break;
