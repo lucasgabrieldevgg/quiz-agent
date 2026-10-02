@@ -8,9 +8,13 @@
 4. The AI grades, accepts equivalent answers and explains
 5. The category can be changed at any time
 
-**Live demo:** https://quiz-agent-sigma.vercel.app
+**Live demo:** https://quiz-agent-sigma.vercel.app — free, no account. If the AI is down, the built-in local math grader keeps the class going.
 
 [Leia em Portugues](README.pt-BR.md)
+
+## The look (CRA — no AI-slop)
+
+Chalkboard classroom: green board, wooden frame, handwritten chalk (Caveat) on Atkinson Hyperlegible body. Zero gradients, zero glassmorphism, zero purple. The audit lives in `tests/cra_test.cjs` (55 checks) — visual tells are regression-tested.
 
 ## Files
 

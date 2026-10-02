@@ -3,39 +3,107 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Agente IA de Quiz</title>
+  <title>Quiz na Lousa — agente de estudos</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧑‍🏫</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
   <style>
+    /* ===== OPERAÇÃO CRA: LOUSA DE SALA DE AULA =====
+       quadro verde · moldura de madeira · giz · notas de papel — irmã do caderno da tabuada */
     :root{
-      --bg:#080d1d; --card:#111a34; --card2:#172348; --text:#eff5ff; --muted:#9fb0d0;
-      --ok:#35d07f; --bad:#ff5f6d; --warn:#ffc857; --brand:#7c5cff; --brand2:#4aa3ff; --line:#293963;
-      --shadow:0 22px 60px rgba(0,0,0,.35); --r:24px;
+      --parede:#12100d; --quadro:#243b32; --moldura:#7a5230; --moldura-escura:#54371d;
+      --giz:#f2efe4; --giz-suave:#c8cfc3; --giz-fraco:rgba(242,239,228,.28);
+      --amarelo:#ffd95e; --rosa:#ff9a8f; --verde-giz:#8fd9a0;
+      --papel:#f7f3e3; --papel-tinta:#4a3b22;
+      --r:10px; --sombra:0 12px 30px rgba(0,0,0,.4);
     }
     *{box-sizing:border-box} html{scroll-behavior:smooth}
-    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:
-      radial-gradient(900px 520px at 8% 0%, rgba(124,92,255,.36), transparent 62%),
-      radial-gradient(850px 520px at 94% 10%, rgba(53,208,127,.18), transparent 60%),
-      radial-gradient(700px 460px at 50% 100%, rgba(74,163,255,.14), transparent 60%), var(--bg); color:var(--text);}
-    .wrap{max-width:1160px;margin:0 auto;padding:30px 18px 55px}.hero{display:grid;grid-template-columns:1.08fr .92fr;gap:18px;align-items:stretch;margin-bottom:18px}
-    .panel,.card{background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.035));border:1px solid rgba(255,255,255,.12);box-shadow:var(--shadow);border-radius:var(--r);backdrop-filter:blur(10px)}
-    .panel{padding:24px}.card{padding:18px;position:relative;overflow:hidden}.card:before{content:"";position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,var(--brand),var(--brand2),var(--ok));opacity:.8}
-    h1{font-size:clamp(32px,5.8vw,64px);line-height:.95;margin:0 0 13px;letter-spacing:-.055em}.lead{color:var(--muted);font-size:18px;line-height:1.55;margin:0}.pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:rgba(124,92,255,.16);border:1px solid rgba(124,92,255,.32);color:#dfd8ff;font-weight:850;font-size:13px;margin-bottom:15px}.dot{width:8px;height:8px;background:var(--ok);border-radius:50%;box-shadow:0 0 18px var(--ok)}
-    .agent{display:flex;gap:12px;align-items:flex-start;margin:14px 0 0;padding:14px;border-radius:18px;background:rgba(53,208,127,.1);border:1px solid rgba(53,208,127,.24)}.bot{width:42px;height:42px;border-radius:15px;background:linear-gradient(135deg,var(--ok),var(--brand2));display:grid;place-items:center;color:#05101f;font-weight:1000;flex:0 0 auto}.small{color:var(--muted);font-size:13px;line-height:1.45}.kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.11);padding:1px 6px;border-radius:7px}
-    .form{display:grid;gap:12px}.label{font-weight:850;font-size:13px;color:#dfe8ff}.input,.select,.textarea{width:100%;border:1px solid var(--line);background:#0d1429;color:var(--text);border-radius:15px;padding:13px 14px;font-size:16px;outline:none;transition:.2s}.input:focus,.select:focus,.textarea:focus{border-color:var(--brand);box-shadow:0 0 0 4px rgba(124,92,255,.16)}.textarea{min-height:96px;resize:vertical}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btn{border:0;border-radius:15px;padding:13px 16px;font-weight:950;color:white;background:linear-gradient(135deg,var(--brand),var(--brand2));cursor:pointer;box-shadow:0 12px 25px rgba(124,92,255,.23)}.btn.secondary{background:#1b2748;color:#dce7ff;border:1px solid rgba(255,255,255,.11);box-shadow:none}.btn.ok{background:linear-gradient(135deg,#20b86d,#4aa3ff)}.btn:disabled{opacity:.55;cursor:not-allowed}.btn:hover:not(:disabled){filter:brightness(1.07)}
-    .score{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0}.stat{padding:13px;border-radius:17px;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.08)}.stat b{display:block;font-size:24px}.stat span{color:var(--muted);font-size:12px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.empty{padding:30px;text-align:center;color:var(--muted);border:1px dashed rgba(255,255,255,.18);border-radius:22px;background:rgba(255,255,255,.035)}
-    .tag{display:inline-flex;gap:6px;align-items:center;color:#d5deff;background:rgba(124,92,255,.16);border:1px solid rgba(124,92,255,.25);border-radius:999px;padding:5px 9px;font-size:12px;font-weight:850}.q{font-size:20px;font-weight:900;margin:14px 0 12px;line-height:1.35}.feedback{margin-top:11px;min-height:46px;border-radius:15px;padding:11px 12px;color:var(--muted);background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.075);line-height:1.38}.feedback.ok{color:#d9ffe9;background:rgba(53,208,127,.12);border-color:rgba(53,208,127,.32)}.feedback.bad{color:#ffe2e5;background:rgba(255,95,109,.11);border-color:rgba(255,95,109,.3)}.feedback.warn{color:#fff2c9;background:rgba(255,200,87,.1);border-color:rgba(255,200,87,.28)}.miniActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.explain{margin-top:9px;color:#dce7ff;background:#0d1429;border:1px dashed rgba(255,255,255,.18);border-radius:14px;padding:10px 12px;display:none;line-height:1.45}.explain.show{display:block}.loading{display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:white;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.footer{color:var(--muted);text-align:center;margin-top:26px;font-size:13px}.toast{position:fixed;right:16px;bottom:16px;max-width:min(420px,calc(100vw - 32px));padding:14px 15px;border-radius:16px;background:#121b35;border:1px solid rgba(255,255,255,.14);box-shadow:var(--shadow);color:#eaf1ff;display:none}.toast.show{display:block}.tabs{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}.tab{border:1px solid rgba(255,255,255,.12);background:#1b2748;color:#dce7ff;border-radius:15px;padding:12px 16px;font-weight:950;cursor:pointer}.tab.active{background:linear-gradient(135deg,var(--brand),var(--brand2));color:white}.view{display:none}.view.active{display:block}.chatShell{display:grid;grid-template-columns:.8fr 1.2fr;gap:16px}.chatBox{height:560px;display:flex;flex-direction:column}.messages{flex:1;overflow:auto;padding:14px;border-radius:18px;background:rgba(0,0,0,.17);border:1px solid rgba(255,255,255,.08)}.msg{max-width:86%;margin:0 0 12px;padding:12px 13px;border-radius:17px;line-height:1.45;white-space:pre-wrap}.msg.user{margin-left:auto;background:linear-gradient(135deg,var(--brand),var(--brand2));color:white;border-bottom-right-radius:6px}.msg.ai{margin-right:auto;background:#101936;border:1px solid rgba(255,255,255,.09);color:#eef5ff;border-bottom-left-radius:6px}.chatForm{display:flex;gap:8px;margin-top:10px}.chatForm .input{flex:1}.memoryBox{margin-top:10px}.hintText{font-size:12px;color:var(--muted);line-height:1.45;margin-top:8px}
-    @media (max-width:900px){.hero,.grid,.chatShell{grid-template-columns:1fr}.score{grid-template-columns:repeat(2,1fr)}}@media(max-width:540px){.row,.score{grid-template-columns:1fr}h1{font-size:38px}.panel{padding:18px}}
+    body{margin:0;font-family:'Atkinson Hyperlegible','Segoe UI',system-ui,sans-serif;background:var(--parede);color:var(--giz);font-size:16px;line-height:1.55}
+    .wrap{max-width:1080px;margin:0 auto;padding:34px 18px 60px}
+    .hero{display:grid;grid-template-columns:1.05fr .95fr;gap:20px;align-items:stretch;margin-bottom:8px}
+    /* moldura dupla: borda de madeira + bisel interno — o primitivo da casa, repetido em tudo */
+    .panel,.card{background:var(--quadro);border:10px solid var(--moldura);border-radius:var(--r);box-shadow:var(--sombra);outline:2px solid var(--moldura-escura);outline-offset:-13px}
+    .panel{padding:26px}
+    .card{padding:18px;position:relative}
+    h1{font-family:'Caveat',cursive;font-weight:700;font-size:clamp(42px,6vw,66px);line-height:1;margin:0 0 10px;color:var(--giz)}
+    h2{font-family:'Caveat',cursive;font-weight:700;font-size:30px;margin:0 0 10px;color:var(--giz)}
+    .lead{color:var(--giz-suave);font-size:17px;line-height:1.6;margin:0}
+    .pill{display:inline-block;font-family:'Caveat',cursive;font-weight:700;font-size:19px;color:var(--amarelo);border:2px solid var(--amarelo);border-radius:6px;padding:2px 14px;transform:rotate(-1.5deg);margin-bottom:14px}
+    .agent{display:flex;gap:14px;align-items:flex-start;margin:16px 0 0;padding:14px 16px;border-radius:6px;background:var(--papel);color:var(--papel-tinta);box-shadow:3px 4px 0 rgba(0,0,0,.35);transform:rotate(-.6deg)}
+    .bot{font-family:'Caveat',cursive;font-weight:700;font-size:27px;line-height:1;color:#2e6b4f;flex:0 0 auto}
+    .agent b{font-family:'Caveat',cursive;font-weight:700;font-size:21px;color:#3a5a44;display:block;margin-bottom:2px}
+    .small{color:var(--giz-suave);font-size:13.5px;line-height:1.5}
+    .agent .small{color:#6b5a3d}
+    .kbd{font-family:ui-monospace,Menlo,monospace;background:rgba(0,0,0,.28);border:1px solid var(--giz-fraco);padding:1px 6px;border-radius:5px;font-size:.85em}
+    .form{display:grid;gap:12px}
+    .label{font-family:'Caveat',cursive;font-weight:700;font-size:20px;color:var(--amarelo)}
+    .input,.select,.textarea{width:100%;border:1.5px solid var(--giz-fraco);background:rgba(0,0,0,.24);color:var(--giz);border-radius:8px;padding:12px 13px;font-size:16px;outline:none;transition:border-color .15s;font-family:inherit}
+    .input:focus,.select:focus,.textarea:focus{border-color:var(--amarelo)}
+    .textarea{min-height:96px;resize:vertical}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .btn{border:2px solid var(--giz);border-radius:9px;padding:11px 16px;font-family:'Caveat',cursive;font-weight:700;font-size:21px;line-height:1.15;color:var(--giz);background:transparent;cursor:pointer;transition:background .15s,transform .1s}
+    .btn:hover:not(:disabled){background:var(--giz-fraco)}
+    .btn:active:not(:disabled){transform:translate(1px,1px)}
+    .btn:disabled{opacity:.4;border-style:dashed;cursor:not-allowed}
+    .form .btn:not(.secondary),.chatForm .btn{background:var(--amarelo);border-color:var(--amarelo);color:#332a12}
+    .form .btn:not(.secondary):hover:not(:disabled),.chatForm .btn:hover:not(:disabled){background:#ffe68a}
+    .btn.secondary{border-color:var(--giz-fraco);color:var(--giz-suave)}
+    .btn.ok{border-color:var(--verde-giz);color:var(--verde-giz);box-shadow:none}
+    .btn.ok:hover:not(:disabled){background:rgba(143,217,160,.12)}
+    .score{display:flex;gap:38px;justify-content:center;flex-wrap:wrap;margin:24px 0}
+    .stat{text-align:center;background:none;border:0;box-shadow:none;padding:0;border-radius:0}
+    .stat b{display:block;font-family:'Caveat',cursive;font-weight:700;font-size:40px;line-height:1;color:var(--amarelo)}
+    .stat span{color:var(--giz-suave);font-size:13px}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+    .toolbar .btn{font-size:19px;padding:9px 14px}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+    .empty{padding:34px 20px;text-align:center;color:var(--giz-suave);border:2px dashed var(--giz-fraco);border-radius:10px;font-family:'Caveat',cursive;font-size:23px}
+    .tag{display:inline-block;font-family:'Caveat',cursive;font-weight:700;font-size:19px;color:var(--amarelo)}
+    .q{font-family:'Caveat',cursive;font-weight:700;font-size:26px;line-height:1.25;margin:10px 0 12px;color:var(--giz)}
+    .feedback{margin-top:11px;min-height:44px;border-radius:8px;padding:11px 13px;color:var(--giz-suave);background:rgba(0,0,0,.18);border:1.5px solid var(--giz-fraco);line-height:1.4;font-size:14.5px}
+    .feedback.ok{color:#dfffe8;background:rgba(143,217,160,.10);border-color:var(--verde-giz)}
+    .feedback.bad{color:#ffe9e5;background:rgba(255,154,143,.10);border-color:var(--rosa)}
+    .feedback.warn{color:#fff3c9;background:rgba(255,217,94,.08);border-color:var(--amarelo)}
+    .miniActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .miniActions .btn{font-size:18px;padding:7px 13px;border-width:1.5px}
+    .explain{margin-top:9px;color:var(--giz);background:rgba(0,0,0,.22);border:1.5px dashed var(--giz-fraco);border-radius:8px;padding:10px 12px;display:none;line-height:1.45;font-size:14px}
+    .explain.show{display:block}
+    .loading{display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid var(--giz-fraco);border-top-color:var(--giz);animation:spin .8s linear infinite;vertical-align:-2px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .footer{color:var(--giz-suave);text-align:center;margin-top:30px;font-size:13px}
+    .toast{position:fixed;right:16px;bottom:16px;max-width:min(420px,calc(100vw - 32px));padding:13px 16px;border-radius:8px;background:var(--papel);color:var(--papel-tinta);border:0;box-shadow:4px 5px 0 rgba(0,0,0,.4);font-size:14.5px;display:none;z-index:50}
+    .toast.show{display:block}
+    .tabs{display:flex;gap:14px;flex-wrap:wrap;margin:20px 0 16px}
+    .tab{border:0;border-bottom:3px solid transparent;background:none;color:var(--giz-suave);border-radius:0;padding:10px 4px;font-family:'Caveat',cursive;font-weight:700;font-size:24px;cursor:pointer}
+    .tab:hover{color:var(--giz)}
+    .tab.active{color:var(--amarelo);border-bottom-color:var(--amarelo)}
+    .view{display:none}.view.active{display:block}
+    .chatShell{display:grid;grid-template-columns:.8fr 1.2fr;gap:20px}
+    .chatBox{display:flex;flex-direction:column}
+    .messages{flex:1;overflow:auto;padding:14px;border-radius:8px;background:rgba(0,0,0,.20);border:1.5px solid var(--giz-fraco);min-height:420px;max-height:560px}
+    .msg{max-width:86%;margin:0 0 12px;padding:11px 13px;border-radius:10px;line-height:1.5;white-space:pre-wrap;font-size:15px}
+    .msg.user{margin-left:auto;background:var(--papel);color:var(--papel-tinta);border-bottom-right-radius:3px;box-shadow:2px 3px 0 rgba(0,0,0,.3)}
+    .msg.ai{margin-right:auto;background:transparent;border:1.5px solid var(--giz-fraco);color:var(--giz);border-bottom-left-radius:3px}
+    .chatForm{display:flex;gap:8px;margin-top:10px}
+    .chatForm .input{flex:1}
+    .memoryBox{margin-top:10px}
+    .hintText{font-size:12.5px;color:var(--giz-suave);line-height:1.5;margin-top:8px}
+    @media(max-width:900px){.hero,.grid,.chatShell{grid-template-columns:1fr}.messages{min-height:320px;max-height:460px}}
+    @media(max-width:540px){.row{grid-template-columns:1fr}.score{gap:22px}h1{font-size:46px}.panel{padding:18px;border-width:8px}.card{padding:15px}}
+    @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
   </style>
 </head>
 <body>
   <main class="wrap">
     <section class="hero">
       <div class="panel">
-        <div class="pill"><span class="dot"></span> Agora é agente IA, sem opções pré-feitas</div>
-        <h1>Quiz + conversa com IA</h1>
+        <div class="pill">combinado do dia: a IA pergunta, você pensa</div>
+        <h1>Quiz na lousa</h1>
         <p class="lead">Digite qualquer categoria para criar quizzes, ou converse com a IA como uma assistente gentil para estudar, tirar dúvidas e pedir explicações.</p>
         <div class="agent">
           <div class="bot">IA</div>
-          <div><b>Agente escolhido: OpenRouter + Qwen Free</b><div class="small">A mesma IA cria quizzes e conversa. Se o Qwen grátis estiver cheio, o backend tenta outro modelo gratuito automaticamente.</div></div>
+          <div><b>Professora de plantão: OpenRouter + Qwen, de graça</b><div class="small">A mesma IA cria quizzes e conversa. Se o Qwen grátis estiver cheio, o backend tenta outro modelo gratuito automaticamente.</div></div>
         </div>
       </div>
 
@@ -213,7 +281,7 @@ function renderMessages(){
   const box = $('messages');
   if(!chatMessages.length){
     const name = localStorage.getItem('aiUserName') || '';
-    box.innerHTML = `<div class="msg ai">Oi${name ? ', '+escapeHtml(name) : ''}! 😊 Eu posso conversar com você, explicar matérias, ajudar a estudar e também criar quizzes. Como posso te ajudar agora?</div>`;
+    box.innerHTML = `<div class="msg ai">Oi${name ? ', '+escapeHtml(name) : ''}! 😊 Sou a professora de plantão: explico matérias, crio quizzes na lousa e tiro dúvidas. O que vamos estudar hoje?</div>`;
     return;
   }
   box.innerHTML = chatMessages.map(m => `<div class="msg ${m.role==='user'?'user':'ai'}">${escapeHtml(m.content)}</div>`).join('');

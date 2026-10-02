@@ -1,0 +1,25 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm test
+      - name: higiene CRA (nada de cara de IA)
+        run: |
+          grep -q "Atkinson Hyperlegible" index.html
+          grep -q "Caveat" index.html
+          if grep -qE "linear-gradient|radial-gradient|7c5cff" index.html; then echo "delator visual encontrado"; exit 1; fi
+          if grep -rEn "ghp_[A-Za-z0-9]{20}|sk-or-v1-|AIzaSy|vcp_[A-Za-z0-9]{20}" index.html api/ tests/; then echo "segredo exposto"; exit 1; fi
+          test -f LICENSE && test -f .gitignore

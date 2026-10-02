@@ -72,3 +72,8 @@ Tokens da Vercel e chaves de IA devem ficar apenas em variáveis de ambiente ou 
 ```bash
 vercel --prod
 ```
+
+
+## A cara (operação CRA)
+
+Lousa de sala de aula: quadro verde, moldura de madeira, giz manuscrito (Caveat) no corpo Atkinson Hyperlegible. Zero gradiente, zero glassmorphism, zero roxo-de-IA. A auditoria visual vive na suíte (`tests/cra_test.cjs`, 55 checks).
