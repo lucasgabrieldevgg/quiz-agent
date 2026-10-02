@@ -1,9 +1,9 @@
 function getConfig() {
   const apiKey = process.env.AI_API_KEY || process.env.OPENROUTER_API_KEY || process.env.CHATANYWHERE_API_KEY;
   const baseUrl = (process.env.AI_BASE_URL || (process.env.CHATANYWHERE_API_KEY ? 'https://api.chatanywhere.tech/v1' : 'https://openrouter.ai/api/v1')).replace(/\/$/, '');
-  const model = process.env.AI_MODEL || (baseUrl.includes('openrouter') ? 'qwen/qwen3-next-80b-a3b-instruct:free' : 'gpt-4o-mini');
+  const model = process.env.AI_MODEL || (baseUrl.includes('openrouter') ? 'google/gemma-4-31b-it:free' : 'gpt-4o-mini');
   const fallbackModels = baseUrl.includes('openrouter')
-    ? ['qwen/qwen3-next-80b-a3b-instruct:free', 'qwen/qwen3-coder:free', 'openai/gpt-oss-20b:free', 'meta-llama/llama-3.3-70b-instruct:free']
+    ? ['google/gemma-4-31b-it:free', 'nvidia/nemotron-3-super-120b-a12b:free', 'qwen/qwen3.8-27b:free', 'google/gemma-4-26b-a4b-it:free']
     : [model];
   return { apiKey, baseUrl, models: [...new Set([model, ...fallbackModels])] };
 }

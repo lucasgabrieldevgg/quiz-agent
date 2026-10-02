@@ -20,7 +20,7 @@ export default async function handler(req, res) {
 
   const apiKey = process.env.AI_API_KEY || process.env.OPENROUTER_API_KEY || process.env.CHATANYWHERE_API_KEY;
   const baseUrl = (process.env.AI_BASE_URL || (process.env.CHATANYWHERE_API_KEY ? 'https://api.chatanywhere.tech/v1' : 'https://openrouter.ai/api/v1')).replace(/\/$/, '');
-  const model = process.env.AI_MODEL || (baseUrl.includes('openrouter') ? 'qwen/qwen3-next-80b-a3b-instruct:free' : 'gpt-4o-mini');
+  const model = process.env.AI_MODEL || (baseUrl.includes('openrouter') ? 'google/gemma-4-31b-it:free' : 'gpt-4o-mini');
 
   if (!apiKey) return res.status(500).json({ error: 'Defina AI_API_KEY na Vercel.' });
 
