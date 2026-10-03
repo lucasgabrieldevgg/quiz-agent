@@ -20,9 +20,9 @@
 - **Robust free AI**: Gemma 4 31B → Nemotron 3 Super → Qwen 3.8 → Gemma 4 26B → Pollinations (last resort, keyless)
 - **No more 10s timeouts** (`maxDuration: 30`)
 
-## The look (CRA — no AI-slop)
+## The look (no AI-slop)
 
-Chalkboard classroom: green board, wooden frame, handwritten chalk (Caveat) on Atkinson Hyperlegible body. Zero gradients, zero glassmorphism, zero purple. The audit lives in `tests/cra_test.cjs` (55 checks) — visual tells are regression-tested.
+Chalkboard classroom: green board, wooden frame, handwritten chalk (Caveat) on Atkinson Hyperlegible body. Zero gradients, zero glassmorphism, zero purple. The audit lives in `tests/suite.cjs` (55 checks) — visual tells are regression-tested.
 
 ## Files
 

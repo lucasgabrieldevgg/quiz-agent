@@ -4,7 +4,7 @@
   "private": true,
   "description": "Quiz na Lousa — agente de estudos: IA gera questões abertas, corrige respostas livres e conversa; com corretor local de matemática quando a IA cai",
   "scripts": {
-    "test": "node tests/cra_test.cjs"
+    "test": "node tests/suite.cjs"
   },
   "devDependencies": {
     "jsdom": "^24.1.3"

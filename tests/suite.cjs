@@ -1,5 +1,5 @@
 // ============================================================
-// 🧑‍🏫 Suíte CRA — Quiz na Lousa (quiz-agent)
+// 🧑‍🏫 Suíte de consistência — Quiz na Lousa (quiz-agent)
 // Joga de verdade com o corretor local de matemática (sem IA),
 // testa memória/chat/escape e BLINDA a identidade anti-vibe.
 // ============================================================
@@ -219,7 +219,7 @@ function carregar(seeds) {
     ok(msgs[2].textContent.includes('**meu**'), 'user: texto do aluno NUNCA é reinterpretado');
   }
 
-  console.log('— 🔥 CRA: NADA DE CARA DE IA —');
+  console.log('— 🔥 NADA DE CARA DE IA —');
   {
     ok(/font-family:'Atkinson Hyperlegible'/.test(html) && !/font-family:Inter|Inter,system-ui/.test(html), 'corpo em Atkinson (nada de Inter/system como personalidade)');
     ok(/'Caveat'/.test(html) && /fonts.googleapis.com\/css2\?family=Caveat/.test(html), 'giz manuscrito: Caveat carregada do Google Fonts');

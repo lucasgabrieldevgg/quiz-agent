@@ -74,6 +74,6 @@ vercel --prod
 ```
 
 
-## A cara (operação CRA)
+## A cara
 
-Lousa de sala de aula: quadro verde, moldura de madeira, giz manuscrito (Caveat) no corpo Atkinson Hyperlegible. Zero gradiente, zero glassmorphism, zero roxo-de-IA. A auditoria visual vive na suíte (`tests/cra_test.cjs`, 55 checks).
+Lousa de sala de aula: quadro verde, moldura de madeira, giz manuscrito (Caveat) no corpo Atkinson Hyperlegible. Zero gradiente, zero glassmorphism, zero roxo-de-IA. A auditoria visual vive na suíte (`tests/suite.cjs`, 55 checks).
